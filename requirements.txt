@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pydantic
+aiosqlite
+python-dotenv # For loading .env files
+
+# AI components
+langchain
+langchain-openai
+langchain_google_genai
+faiss-cpu # Vector store for examples
+pymongo # For MongoDB example loading
