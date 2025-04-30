@@ -5,20 +5,22 @@ import aiosqlite
 from typing import List, Dict, Any, Tuple, Optional
 
 # LangChain imports
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+from langchain.prompts import ChatPromptTemplate
+# Corrected import for BaseChatModel
+from langchain.chat_models.base import BaseChatModel
 
 import database
 
-# Import the getter functions from the examples module
-from examples import get_llm, get_few_shot_selector, load_examples # load_examples might be needed if used elsewhere, but not directly for chains
+# Import the factory functions and the example selector getter
+from llm_factory import get_llm # Import from the factory
+from examples import get_few_shot_selector
 
 logger = logging.getLogger(__name__)
 
 # --- Prompt Definitions ---
 
 def build_sql_generation_chain():
-    """Builds the SQL generation chain with the latest few-shot selector and LLM."""
+    """Builds the SQL generation chain with the latest few-shot selector and LLM from the factory."""
     prompt_messages = [
         ("system", """
 You are an expert SQLite assistant with strong attention to detail. Given the question, database table schema, and example queries, output a valid SQLite query. When generating the query, follow these rules:
@@ -55,13 +57,17 @@ You are an expert SQLite assistant with strong attention to detail. Given the qu
         logger.warning("Few-shot examples not available, SQL generation prompt will not include them.")
     prompt_messages.append(("human", "=== Question:\n{natural_language_query}\n=== Schemas:\n{schema}\n=== Resulting query:"))
     prompt_template = ChatPromptTemplate.from_messages(prompt_messages)
-    llm = get_llm()
+
+    llm: Optional[BaseChatModel] = get_llm() # Get LLM instance from factory
     if not llm:
+        logger.error("LLM not available from factory. Cannot build SQL generation chain.")
         return None
-    output_parser = StrOutputParser()
-    return prompt_template | llm | output_parser
+
+    # Return a chain that invokes the LLM directly; parser is unnecessary for raw string output
+    return prompt_template | llm
 
 def build_sql_fixing_chain():
+    """Builds the SQL fixing chain using the LLM from the factory."""
     prompt_template = ChatPromptTemplate.from_messages([
         ("system", """
 You are an expert SQLite assistant. You are given an invalid SQLite query, the error message it produced, the database schema, and the original natural language query.
@@ -87,32 +93,40 @@ Rules for Fixing:
 - Only output the corrected, raw SQL query. Do not include explanations or markdown formatting.
 """),
     ])
-    llm = get_llm()
+    llm: Optional[BaseChatModel] = get_llm() # Get LLM instance from factory
     if not llm:
+        logger.error("LLM not available from factory. Cannot build SQL fixing chain.")
         return None
-    output_parser = StrOutputParser()
-    return prompt_template | llm | output_parser
+
+    # Return a chain that invokes the LLM directly; parser is unnecessary for raw string output
+    return prompt_template | llm
 
 # --- Core Functions ---
 
 async def generate_sql_from_nl(natural_language_query: str, schema: str) -> str:
-    """Converts natural language query to SQL using a LangChain chain."""
+    """Converts natural language query to SQL using a LangChain chain built with the factory LLM."""
+    # Check LLM availability first
+    if not get_llm():
+         raise ValueError("LangChain LLM not initialized via factory. Cannot generate SQL.")
+
     sql_generation_chain = build_sql_generation_chain()
     if not sql_generation_chain:
-        if not get_llm(): # Check LLM availability directly
-             raise ValueError("LangChain LLM not initialized. Cannot generate SQL.")
-        else:
-             # This case implies LLM is available now, but chain wasn't created.
-             # This shouldn't happen with the current structure but is a safeguard.
-             raise ValueError("SQL generation chain is not available.")
+         # This implies LLM was available moments ago but chain build failed (unlikely)
+         raise ValueError("SQL generation chain could not be built.")
 
     logger.info(f"Generating SQL for: {natural_language_query} using LangChain")
     try:
-        sql_query = await sql_generation_chain.ainvoke({
+        # Invoke the chain which returns an AIMessage; extract its content
+        response = await sql_generation_chain.ainvoke({
             "schema": schema,
             "natural_language_query": natural_language_query
         })
-        sql_query = sql_query.strip()
+        # Extract text from response object
+        if hasattr(response, 'content'):
+            sql_text = response.content
+        else:
+            sql_text = str(response)
+        sql_query = sql_text.strip()
         # Basic cleanup (optional, LLM should follow instructions)
         if sql_query.startswith("```sql"):
             sql_query = sql_query[6:]
@@ -144,23 +158,30 @@ async def check_sql_syntax(sql_query: str) -> Tuple[bool, Optional[str]]:
         await database.close_db_connection(conn)
 
 async def attempt_fix_sql(invalid_sql: str, error_message: str, schema: str, original_nl_query: str) -> str:
-    """Attempts to fix an invalid SQL query using a LangChain chain."""
+    """Attempts to fix an invalid SQL query using a LangChain chain built with the factory LLM."""
+    # Check LLM availability first
+    if not get_llm():
+        raise ValueError("LangChain LLM not initialized via factory. Cannot fix SQL.")
+
     sql_fixing_chain = build_sql_fixing_chain()
     if not sql_fixing_chain:
-        if not get_llm(): # Check LLM availability directly
-            raise ValueError("LangChain LLM not initialized. Cannot fix SQL.")
-        else:
-            raise ValueError("SQL fixing chain is not available.")
+        raise ValueError("SQL fixing chain could not be built.")
 
     logger.warning(f"Attempting to fix SQL: {invalid_sql} based on error: {error_message} using LangChain")
     try:
-        fixed_sql = await sql_fixing_chain.ainvoke({
+        # Invoke the chain which returns an AIMessage; extract its content
+        response = await sql_fixing_chain.ainvoke({
             "schema": schema,
             "original_nl_query": original_nl_query,
             "invalid_sql": invalid_sql,
             "error_message": error_message
         })
-        fixed_sql = fixed_sql.strip()
+        # Extract text from response object
+        if hasattr(response, 'content'):
+            fixed_text = response.content
+        else:
+            fixed_text = str(response)
+        fixed_sql = fixed_text.strip()
         # Basic cleanup (optional)
         if fixed_sql.startswith("```sql"):
             fixed_sql = fixed_sql[6:]
@@ -178,7 +199,7 @@ async def attempt_fix_sql(invalid_sql: str, error_message: str, schema: str, ori
 
 async def process_query_workflow(natural_language_query: str) -> List[Dict[str, Any]] | str:
     """
-    Runs the full workflow: Text -> SQL -> Check -> (Fix) -> Execute using LangChain.
+    Runs the full workflow: Text -> SQL -> Check -> (Fix) -> Execute using the factory LLM.
     Returns the raw query results as a list of dictionaries, or an error string.
     """
     max_fix_attempts = 1
@@ -187,9 +208,9 @@ async def process_query_workflow(natural_language_query: str) -> List[Dict[str, 
     schema = None
     error_message = "An unknown syntax error occurred."
 
-    # Check LLM availability at the start of the workflow using the getter
+    # Check LLM availability at the start of the workflow using the factory getter
     if not get_llm():
-        logger.error("LLM not initialized. Cannot process query workflow.")
+        logger.error("LLM not initialized via factory. Cannot process query workflow.")
         return "Server configuration error: LLM not initialized."
 
     try:

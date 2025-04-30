@@ -1,16 +1,18 @@
 """Sets up few-shot examples for SQL generation using semantic similarity."""
 
 import logging
-# LangChain imports (keep existing ones)
-from langchain_community.vectorstores import FAISS
+from typing import Optional, List, Dict, Any
+
+# LangChain core imports for base classes and interfaces
+# Corrected import for BaseEmbeddings
+from langchain.embeddings.base import Embeddings
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
 from langchain_core.prompts import FewShotChatMessagePromptTemplate, ChatPromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-# Add imports for other potential providers if needed
-# from langchain_anthropic import ChatAnthropic
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_community.vectorstores import FAISS
 
+# Local imports
 import config
+from llm_factory import get_embeddings # Import the factory function
 
 # Attempt to import pymongo, but don't fail if it's not needed/installed
 try:
@@ -38,10 +40,9 @@ _local_examples = [
 
 
 # --- Internal State Variables for Lazy Initialization ---
-_examples = None
-_llm = None
-_embeddings = None
-_few_shot_sql_examples = None
+_examples: Optional[List[Dict[str, Any]]] = None
+_embeddings_instance: Optional[Embeddings] = None # Use Embeddings type hint
+_few_shot_sql_examples: Optional[FewShotChatMessagePromptTemplate] = None
 
 # --- Example Loading Logic ---
 
@@ -111,13 +112,13 @@ def _load_examples_from_mongodb():
 def load_examples():
     """Loads examples based on the configured source (config.EXAMPLE_SOURCE)."""
     global _examples
-    if _examples is None: # Only load once
+    if (_examples is None): # Only load once
         source = config.EXAMPLE_SOURCE
         logger.info(f"Attempting to load examples from source: '{source}'")
 
         if source == 'mongodb':
             db_examples = _load_examples_from_mongodb()
-            if db_examples is not None:
+            if (db_examples is not None):
                 logger.info(f"Using {len(db_examples)} examples loaded from MongoDB.")
                 _examples = db_examples
             else:
@@ -134,84 +135,35 @@ def load_examples():
 
 # --- Lazy Initializer Functions ---
 
-def get_llm():
-    """Lazily initializes and returns the LangChain LLM."""
-    global _llm
-    if _llm is None:
-        logger.info("Initializing LLM (first access)...")
-        if not config.LLM_API_KEY and not getattr(config, "GOOGLE_API_KEY", None):
-            logger.warning("LLM_API_KEY or GOOGLE_API_KEY not set. Cannot initialize LLM.")
-            # Return None, subsequent checks will handle this
+def get_embeddings_instance() -> Optional[Embeddings]: # Renamed for clarity
+    """Lazily initializes and returns the LangChain Embeddings using the factory."""
+    global _embeddings_instance
+    if _embeddings_instance is None:
+        logger.info("Initializing Embeddings via factory (first access)...")
+        _embeddings_instance = get_embeddings() # Call the factory function
+        if _embeddings_instance:
+            logger.info("Embeddings initialized successfully via factory.")
         else:
-            try:
-                if config.LLM_PROVIDER == "openai":
-                    logger.info(f"Initializing OpenAI LLM (Model: {config.LLM_MODEL}).")
-                    _llm = ChatOpenAI(api_key=config.LLM_API_KEY, model=config.LLM_MODEL)
-                elif config.LLM_PROVIDER == "google":
-                    logger.info(f"Initializing Google Gemini LLM (Model: {config.LLM_MODEL}).")
-                    _llm = ChatGoogleGenerativeAI(
-                        google_api_key=getattr(config, "GOOGLE_API_KEY", config.LLM_API_KEY),
-                        model=config.LLM_MODEL,
-                        temperature=0.2
-                    )
-                # Add elif blocks for other providers if needed
-                else:
-                    logger.error(f"Unsupported LLM_PROVIDER: {config.LLM_PROVIDER}")
-
-                if _llm:
-                    logger.info(f"LLM initialized successfully for provider: {config.LLM_PROVIDER}")
-
-            except Exception as e:
-                logger.error(f"Failed to initialize LLM for provider {config.LLM_PROVIDER}: {e}")
-                _llm = None # Ensure it remains None on failure
-    return _llm
-
-def get_embeddings():
-    """Lazily initializes and returns the LangChain Embeddings."""
-    global _embeddings
-    if _embeddings is None:
-        logger.info("Initializing Embeddings (first access)...")
-        if not config.LLM_API_KEY:
-            logger.warning("LLM_API_KEY not set. Cannot initialize Embeddings.")
-        else:
-            try:
-                if config.LLM_PROVIDER == "openai":
-                    logger.info("Initializing OpenAI Embeddings.")
-                    _embeddings = OpenAIEmbeddings(api_key=config.LLM_API_KEY)
-                elif config.LLM_PROVIDER == "google-genai":
-                    logger.info("Initializing Google Gemini Embeddings.")
-                    _embeddings = GoogleGenerativeAIEmbeddings(
-                        google_api_key=config.LLM_API_KEY
-                    )
-                # Add elif blocks for other providers if needed
-                else:
-                    # If LLM provider is unsupported, embeddings likely are too
-                    logger.error(f"Unsupported LLM_PROVIDER for embeddings: {config.LLM_PROVIDER}")
-
-                if _embeddings:
-                    logger.info("Embeddings initialized successfully.")
-
-            except Exception as e:
-                logger.error(f"Failed to initialize Embeddings for provider {config.LLM_PROVIDER}: {e}")
-                _embeddings = None # Ensure it remains None on failure
-    return _embeddings
+            logger.error("Failed to initialize Embeddings via factory.")
+    return _embeddings_instance
 
 
-def get_few_shot_selector():
+def get_few_shot_selector() -> Optional[FewShotChatMessagePromptTemplate]:
     """Lazily initializes and returns the FewShotChatMessagePromptTemplate."""
     global _few_shot_sql_examples
     if _few_shot_sql_examples is None:
         logger.info("Initializing Few-Shot Example Selector (first access)...")
         # Ensure examples and embeddings are loaded/initialized first
         current_examples = load_examples() # Load examples if not already loaded
-        current_embeddings = get_embeddings() # Initialize embeddings if not already initialized
+        current_embeddings = get_embeddings_instance() # Use the renamed function
 
         if current_embeddings and current_examples: # Check examples list is not empty
             try:
                 logger.info(f"Creating FAISS vector store from {len(current_examples)} examples.")
+                # FAISS.from_texts expects List[str], List[List[float]], or Embeddings
                 vector_store = FAISS.from_texts(
                     [ex["natural_language_query"] for ex in current_examples],
-                    current_embeddings,
+                    current_embeddings, # Pass the BaseEmbeddings instance
                     metadatas=current_examples
                 )
                 example_selector = SemanticSimilarityExampleSelector(
@@ -238,7 +190,7 @@ def get_few_shot_selector():
             logger.warning("No examples loaded. Few-shot examples will not be used.")
             _few_shot_sql_examples = None
         else: # Embeddings not available
-            logger.warning("Embeddings not available. Few-shot examples will not be used.")
+            logger.warning("Embeddings not available (failed initialization?). Few-shot examples will not be used.")
             _few_shot_sql_examples = None
 
     return _few_shot_sql_examples
