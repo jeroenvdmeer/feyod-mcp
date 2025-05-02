@@ -77,7 +77,7 @@ LLM_API_KEY="YOUR_API_KEY_HERE"
 
 # Specify the model name compatible with the provider
 # (e.g., o4-mini, gemini-2.5-flash-preview-04-17)
-LLM_MODEL="gemini-2.5-flash-preview-04-17)"
+LLM_MODEL="gemini-2.5-flash-preview-04-17"
 
 # --- Example Loading Configuration (Optional) ---
 
