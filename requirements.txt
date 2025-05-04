@@ -6,6 +6,7 @@ python-dotenv # For loading .env files
 
 # AI components
 langchain
+langchain-community
 langchain-openai
 langchain_google_genai
 faiss-cpu # Vector store for examples
