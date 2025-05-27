@@ -1,14 +1,14 @@
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jeroenvdmeer-feyod-mcp-badge.png)](https://mseep.ai/app/jeroenvdmeer-feyod-mcp)
-
 # Feyod MCP Server
 
-FastAPI-based Model Context Protocol (MCP) server for querying Feyenoord football match data using natural language.
+FastMCP-based Model Context Protocol (MCP) server for querying Feyenoord football match data using natural language. Compatible with Claude Desktop and other MCP clients.
+
+---
 
 ## Overview
 
 This MCP server provides a natural language interface to query Feyod: Feyenoord Open Data. The underlying database is maintained in the [feyod GitHub repository](https://github.com/jeroenvdmeer/feyod). You will need to obtain the latest SQL file from that repository to set up the required database.
 
-This server uses LangChain to:
+The server uses LangChain to:
 1.  Convert natural language questions into SQL queries (optionally leveraging few-shot examples for better accuracy).
 2.  Validate the generated SQL.
 3.  Attempt to fix invalid SQL using an LLM.
@@ -16,6 +16,8 @@ This server uses LangChain to:
 5.  Return the raw query results.
 
 LLM and embedding models are dynamically loaded based on configuration using a provider factory (`llm_factory.py`), allowing easy switching between providers like OpenAI, Google, etc.
+
+---
 
 ## Setup
 
@@ -30,17 +32,26 @@ LLM and embedding models are dynamically loaded based on configuration using a p
     # Change directory into the MCP server
     cd feyod-mcp
     ```
-2.  **Create and activate a virtual environment:**
+2.  **Create and activate a virtual environment (recommended: uv):**
     ```bash
-    python -m venv .venv
-    # Windows
-    .\.venv\Scripts\activate
-    # macOS/Linux
-    source .venv/bin/activate
+    # Install uv if not present (see https://docs.astral.sh/uv/)
+    # Windows:
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    # macOS/Linux:
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    uv venv
+    .venv\Scripts\activate  # Windows
+    # or
+    source .venv/bin/activate  # macOS/Linux
     ```
 3.  **Install dependencies:**
     ```bash
+    # Using uv (recommended)
+    uv add "mcp[cli]" langchain langchain-openai langchain-google-genai python-dotenv aiosqlite
+    # Or using pip
     pip install -r requirements.txt
+    pip install "mcp[cli]"
     ```
 4.  **Set up the database:**
     ```bash
@@ -51,117 +62,139 @@ LLM and embedding models are dynamically loaded based on configuration using a p
     sqlite3 feyod.db < feyod.sql
     ```
 
+---
+
 ## Configuration
 
 Create a `.env` file in the `mcp` directory with the following variables:
 
 ```dotenv
-# .env
-
 # Path to the SQLite database file (relative to mcp folder or absolute)
 DATABASE_PATH="../feyod/feyod.db"
-
-# Port for the FastAPI server
-PORT=8000
 
 # Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
 LOG_LEVEL=INFO
 
 # --- LLM Configuration ---
-
-# Specify the provider (e.g., openai, google). See llm_factory.py for supported providers.
-# Ensure corresponding langchain package is installed (e.g., langchain-openai, langchain-google-genai)
-LLM_PROVIDER="google"
-
-# Your API key for the chosen provider. The specific variable name might differ per provider.
-# Common keys used (check llm_factory.py):
+LLM_PROVIDER="google"  # or "openai", etc.
 LLM_API_KEY="YOUR_API_KEY_HERE"
-
-# Specify the model name compatible with the provider
-# (e.g., o4-mini, gemini-2.5-flash-preview-04-17)
 LLM_MODEL="gemini-2.5-flash-preview-04-17"
 
 # --- Example Loading Configuration (Optional) ---
-
-# Determines where few-shot examples are loaded from. This allows you to provide the MCP server with examples of natural language text into SQL queries.
-# Options:
-#   - "local": Use the hardcoded examples list in examples.py (default).
-#   - "mongodb": Load examples from a MongoDB-compatible server (local or cloud).
-#
-# If using "mongodb", set these in your .env:
-EXAMPLE_SOURCE="mongodb"
-# Example connection strings:
-#   Local MongoDB:
-#   EXAMPLE_DB_CONNECTION_STRING="mongodb://localhost:27017/feyenoord_data"
-#   MongoDB Atlas:
-#   EXAMPLE_DB_CONNECTION_STRING="mongodb+srv://<user>:<password>@<cluster-url>/feyenoord_data?retryWrites=true&w=majority"
+EXAMPLE_SOURCE="local"  # or "mongodb"
+EXAMPLE_DB_CONNECTION_STRING=""
 EXAMPLE_DB_NAME="feyenoord_data"
 EXAMPLE_DB_COLLECTION="examples"
 ```
 
-**Important:**
-*   Replace placeholder API key with your actual key.
-*   Ensure the `LLM_PROVIDER` matches one defined in `llm_factory.py`.
-*   Install the necessary LangChain integration package for your chosen provider (e.g., `pip install langchain-google-genai`).
-*   If using `EXAMPLE_SOURCE="mongodb"`, configure MongoDB settings as before.
+**Notes:**
+- Replace placeholder API key with your actual key.
+- Ensure the `LLM_PROVIDER` matches one defined in `llm_factory.py`.
+- Install the necessary LangChain integration package for your chosen provider (e.g., `langchain-google-genai`).
+- If using `EXAMPLE_SOURCE="mongodb"`, configure MongoDB settings as above.
+
+---
+
+## Running the Server
+
+You can run the server in several ways:
+
+- **Development mode (with hot reload and Inspector support):**
+    ```bash
+    mcp dev main.py
+    ```
+- **Standard execution:**
+    ```bash
+    python main.py
+    # or
+    mcp run main.py
+    ```
+
+The server will start and listen for MCP connections (stdio by default, or HTTP/SSE if configured).
+
+---
+
+## Integrating with Claude Desktop or MCP Inspector
+
+**Claude Desktop:**
+1. Open (or create) `%AppData%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS).
+2. Add your server configuration:
+    ```json
+    {
+      "mcpServers": {
+        "feyod-mcp": {
+          "command": "python",
+          "args": ["main.py"],
+          "env": {
+            "DATABASE_PATH": "C:/Users/jeroe/Documents/feyod/feyod.db",
+            "LLM_PROVIDER": "google",
+            "LLM_API_KEY": "YOUR_API_KEY_HERE",
+            "LLM_MODEL": "gemini-2.5-flash-preview-04-17"
+          }
+        }
+      }
+    }
+    ```
+3. Restart Claude Desktop. The server and its tools will appear in the Claude UI.
+
+**MCP Inspector:**
+- For local testing and debugging, use:
+    ```bash
+    mcp dev main.py
+    # Or, if installed globally:
+    npx @modelcontextprotocol/inspector uvx main.py
+    ```
+
+---
+
+## API Endpoints and Tools
+
+This server exposes MCP tools for querying the Feyenoord database. Tools are discoverable via the MCP protocol (`tools/list`).
+
+- **query_feyod_database**: Converts a natural language query about Feyenoord matches into a SQL query, executes it, and returns the SQL query and its result.
+
+See the MCP Inspector or Claude Desktop's tool list for details.
+
+---
 
 ## Adding New LLM Providers
 
 To add support for a new provider:
-
 1.  **Install Package:** Install the required LangChain integration package (e.g., `pip install langchain-anthropic`).
-2.  **Update Factory:** Edit `llm_factory.py`:
-    *   Import the necessary `Chat...` and `...Embeddings` classes.
-    *   Add a new entry to the `PROVIDER_REGISTRY` dictionary, specifying the classes, the expected config variable for the API key (`api_key_config`), and any default arguments (`llm_args`, `embeddings_args`).
-    *   Update the `_get_api_key`, `get_llm`, and `get_embeddings` functions if the new provider requires specific logic for API key handling or constructor arguments.
+2.  **Update Factory:** Edit `llm_factory.py` to add the provider.
 3.  **Update `.env` / README:** Add the necessary API key to your `.env` file.
 
-## Running the Server
-
-Once set up and configured, run the following command from the `mcp` directory:
-
-```bash
-python main.py
-```
-
-The server will start, typically on `http://localhost:8000` (or the port specified in `.env`).
-
-## API Endpoints
-
-*   **`GET /`**: Basic health check.
-*   **`GET /v1/tools`**: Returns the conceptual tools definition (as required by MCP).
-*   **`POST /v1/generate`**: The main MCP endpoint.
-    *   **Request Body:**
-        ```json
-        {
-            "history": [
-                {
-                    "role": "user",
-                    "content": "Hoe vaak heeft Santiago Giménez gescoord tegen Ajax?"
-                }
-            ]
-        }
-        ```
-    *   **Success Response (200 OK):**
-        ```json
-        {
-            "content": "[{\"COUNT(*)\": 5}]",
-            "tool_calls": null,
-            "error": null
-        }
-        ```
-    *   **Error Response (200 OK with error field):**
-        ```json
-        {
-            "error": "Error message describing the failure (e.g., LLM unavailable, DB error, invalid SQL after fix attempts)."
-        }
-        ```
+---
 
 ## Dependencies
 
-*   Python 3.10+
-*   See `requirements.txt` for specific package dependencies.
-*   Provider-specific packages (e.g., `langchain-openai`, `langchain-google-genai`).
+- Python 3.10+
+- MCP Python SDK (`mcp`)
+- See `requirements.txt` for specific package dependencies.
+- Provider-specific packages (e.g., `langchain-openai`, `langchain-google-genai`).
+
+---
+
+## Debugging and Troubleshooting
+
+- Use `mcp dev main.py` and the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) for local testing.
+- Logs are written to stderr and can be viewed in Claude Desktop logs or your terminal.
+- For environment/config issues, check `.env` and Claude Desktop config.
+- See [MCP Debugging Guide](https://modelcontextprotocol.info/llms-full.txt#debugging) for more tips.
+
+---
+
+## Security
+
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jeroenvdmeer-feyod-mcp-badge.png)](https://mseep.ai/app/jeroenvdmeer-feyod-mcp)
+
+## References
+
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [MCP Documentation](https://modelcontextprotocol.info/llms-full.txt)
+- [Official MCP Servers](https://github.com/modelcontextprotocol/servers)
+
+---
 
 ## Disclaimer
 
