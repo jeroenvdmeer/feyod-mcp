@@ -51,7 +51,6 @@ LLM and embedding models are dynamically loaded based on configuration using a p
     uv add "mcp[cli]" langchain langchain-openai langchain-google-genai python-dotenv aiosqlite
     # Or using pip
     pip install -r requirements.txt
-    pip install "mcp[cli]"
     ```
 4.  **Set up the database:**
     ```bash
@@ -78,7 +77,7 @@ LOG_LEVEL=INFO
 # --- LLM Configuration ---
 LLM_PROVIDER="google"  # or "openai", etc.
 LLM_API_KEY="YOUR_API_KEY_HERE"
-LLM_MODEL="gemini-2.5-flash-preview-04-17"
+LLM_MODEL="gemini-2.5-flash-preview-05-20"
 
 # --- Example Loading Configuration (Optional) ---
 EXAMPLE_SOURCE="local"  # or "mongodb"
