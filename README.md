@@ -33,13 +33,10 @@ LLM and embedding models are dynamically loaded based on configuration using a p
     cd feyod-mcp
     ```
 2.  **Create and activate a virtual environment (recommended: uv):**
-    ```bash
-    # Install uv if not present (see https://docs.astral.sh/uv/)
-    # Windows:
-    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    # macOS/Linux:
-    curl -LsSf https://astral.sh/uv/install.sh | sh
 
+    Refer to https://docs.astral.sh/uv/ for the installation instructions of `uv`.
+
+    ```bash
     uv venv
     .venv\Scripts\activate  # Windows
     # or
@@ -113,36 +110,32 @@ The server will start and listen for MCP connections (stdio by default, or HTTP/
 
 ---
 
-## Integrating with Claude Desktop or MCP Inspector
+## Running with Docker
 
-**Claude Desktop:**
-1. Open (or create) `%AppData%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS).
-2. Add your server configuration:
-    ```json
-    {
-      "mcpServers": {
-        "feyod-mcp": {
-          "command": "python",
-          "args": ["main.py"],
-          "env": {
-            "DATABASE_PATH": "C:/Users/jeroe/Documents/feyod/feyod.db",
-            "LLM_PROVIDER": "google",
-            "LLM_API_KEY": "YOUR_API_KEY_HERE",
-            "LLM_MODEL": "gemini-2.5-flash-preview-04-17"
-          }
-        }
-      }
-    }
-    ```
-3. Restart Claude Desktop. The server and its tools will appear in the Claude UI.
+You can containerize the MCP server using the provided `Dockerfile`.
 
-**MCP Inspector:**
-- For local testing and debugging, use:
+1.  **Build the Docker image:**
+    Navigate to the `mcp` directory in your terminal and run the following command:
     ```bash
-    mcp dev main.py
-    # Or, if installed globally:
-    npx @modelcontextprotocol/inspector uvx main.py
+    docker build -t feyod-mcp:latest .
     ```
+    This will build an image tagged `feyod-mcp:latest`.
+
+2.  **Run the Docker container:**
+    You can run the container, mapping the internal port 8000 to an external port (e.g., 8000) on your host machine. You will also need to mount the database file as a volume so the container can access it.
+
+    ```bash
+    docker run -p 8000:8000 -v <absolute_path_to_feyod_db>:/app/../feyod/feyod.db feyod-mcp:latest
+    ```
+    Replace `<absolute_path_to_feyod_db>` with the absolute path to your `feyod.db` file on your host machine.
+
+    Alternatively, you can pass environment variables directly:
+    ```bash
+    docker run -p 8000:8000 -e DATABASE_PATH="/app/../feyod/feyod.db" -e LLM_PROVIDER="google" -e LLM_API_KEY="YOUR_API_KEY_HERE" -e LLM_MODEL="gemini-2.5-flash-preview-05-20" -v <absolute_path_to_feyod_db>:/app/../feyod/feyod.db feyod-mcp:latest
+    ```
+    Remember to replace the placeholder values with your actual configuration.
+
+The server inside the container will start and listen on `0.0.0.0:8000`.
 
 ---
 
