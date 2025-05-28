@@ -2,7 +2,7 @@ mcp[cli]
 uvicorn[standard]
 pydantic
 aiosqlite
-python-dotenv # For loading .env files
+python-dotenv
 
 # AI components
 langchain
