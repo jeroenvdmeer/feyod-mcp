@@ -4,6 +4,7 @@ from mcp.server.fastmcp import FastMCP
 import logging
 import config
 import query_processor
+import uvicorn # Import uvicorn
 
 # Configure logging using level from config
 logging.basicConfig(level=config.LOG_LEVEL)
@@ -29,4 +30,9 @@ async def query_feyod_database(natural_language_query: str) -> dict:
         raise Exception("Tool execution failed or returned unexpected data.")
 
 if __name__ == "__main__":
-    mcp.run()
+    uvicorn.run(
+        mcp.streamable_http_app,
+        host="0.0.0.0",
+        port=8000,
+        log_level=config.LOG_LEVEL.lower()
+    )
