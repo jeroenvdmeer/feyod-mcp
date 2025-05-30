@@ -11,7 +11,7 @@ logging.basicConfig(level=config.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
 # Create the MCP server instance
-mcp = FastMCP("Feyod MCP Server")
+mcp = FastMCP("Feyod MCP Server", stateless_http=True)
 
 @mcp.tool(
     name="query_feyod_database",

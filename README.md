@@ -2,6 +2,8 @@
 
 FastMCP-based Model Context Protocol (MCP) server for querying Feyenoord football match data using natural language. Compatible with Claude Desktop and other MCP clients.
 
+The server is publicly available at `https://mcp.feyod.nl/mcp` and a Docker container is available on Docker Hub (`jeroenvdmeer/feyod-mcp`).
+
 ---
 
 ## Overview
@@ -16,6 +18,54 @@ The server uses LangChain to:
 5.  Return the raw query results.
 
 LLM and embedding models are dynamically loaded based on configuration using a provider factory (`llm_factory.py`), allowing easy switching between providers like OpenAI, Google, etc.
+
+---
+
+## Consumption
+
+### Using the Public Endpoint
+
+The Feyod MCP server is publicly available at `https://mcp.feyod.nl/mcp`. You can connect to this endpoint from any MCP-compatible client, such as Claude Desktop.
+
+### Using the Docker Container
+
+A Docker image of the Feyod MCP server is available on Docker Hub. You can pull and run it using the following commands:
+
+1.  **Pull the Docker image:**
+    ```bash
+    docker pull jeroenvdmeer/feyod-mcp
+    ```
+
+2.  **Run the Docker container:**
+    You will need to provide the necessary environment variables for the LLM provider and API key. You can also mount the `feyod.db` file if you want to use a local database instead of the one included in the image.
+
+    ```bash
+    docker run -p 8000:8000 \
+      -e LLM_PROVIDER="your_llm_provider" \
+      -e LLM_API_KEY="your_api_key" \
+      jeroenvdmeer/feyod-mcp
+    ```
+    Replace `your_llm_provider` and `your_api_key` with your actual LLM configuration.
+
+    To mount a local database file:
+    ```bash
+    docker run -p 8000:8000 \
+      -e LLM_PROVIDER="your_llm_provider" \
+      -e LLM_API_KEY="your_api_key" \
+      -v <absolute_path_to_feyod_db>:/app/feyod/feyod.db \
+      jeroenvdmeer/feyod-mcp
+    ```
+    Replace `<absolute_path_to_feyod_db>` with the absolute path to your `feyod.db` file on your host machine.
+
+---
+
+## Tools
+
+This server exposes MCP tools for querying the Feyenoord database. Tools are discoverable via the MCP protocol (`tools/list`).
+
+- **query_feyod_database**: Converts a natural language query about Feyenoord matches into a SQL query, executes it, and returns the SQL query and its result.
+
+See the MCP Inspector or Claude Desktop's tool list for details.
 
 ---
 
@@ -136,16 +186,6 @@ You can containerize the MCP server using the provided `Dockerfile`.
     Remember to replace the placeholder values with your actual configuration.
 
 The server inside the container will start and listen on `0.0.0.0:8000`.
-
----
-
-## API Endpoints and Tools
-
-This server exposes MCP tools for querying the Feyenoord database. Tools are discoverable via the MCP protocol (`tools/list`).
-
-- **query_feyod_database**: Converts a natural language query about Feyenoord matches into a SQL query, executes it, and returns the SQL query and its result.
-
-See the MCP Inspector or Claude Desktop's tool list for details.
 
 ---
 

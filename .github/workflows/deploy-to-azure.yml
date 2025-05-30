@@ -14,37 +14,45 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+    
+    - name: 'Checkout database'
+      uses: actions/checkout@v4
+      with:
+        repository: jeroenvdmeer/feyod
+        path: ./feyod
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: ${{ secrets.PYTHON_VERSION }}
+        python-version: '3.x'
         cache: 'pip'
-        
-    - name: Install dependencies
+
+    - name: Build SQLite Database
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-      working-directory: ${{ env.WORKING_DIRECTORY }}
-    
-    - name: Run tests (if available)
-      run: |
-        if [ -f tests/test_*.py ]; then
-          pip install pytest
-          pytest
-        else
-          echo "No tests to run"
-        fi
-      working-directory: ${{ env.WORKING_DIRECTORY }}
+        echo "Building feyod.db..."
+        cd ./feyod
+        rm -f feyod.db # Ensure clean start
+        sqlite3 feyod.db < feyod.sql
+        echo "Database successfully built."
       
     - name: Log in to Azure
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
-    - name: Deploy to Azure App Service
-      uses: azure/webapps-deploy@v2
+    - name: Build and deploy Container App
+      uses: azure/container-apps-deploy-action@v2
       with:
-        app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-        package: .
+        appSourcePath: .
+        dockerfilePath: ./Dockerfile
+        registryUrl: registry.hub.docker.com
+        imageToBuild: jeroenvdmeer/feyod-mcp:latest
+        location: ${{ secrets.AZURE_LOCATION }}
+        resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        containerAppEnvironment: ${{ secrets.AZURE_CONTAINER_APP_ENVIRONMENT }}
+        containerAppName: ${{ secrets.AZURE_CONTAINER_APP_NAME }}
+        ingress: external
+        targetPort: 8000
+        disableTelemetry: true
+        environmentVariables: LOG_LEVEL="INFO" FEYOD_DATABASE_URL="sqlite+aiosqlite:///feyod/feyod.db" LLM_PROVIDER=${{ secrets.LLM_PROVIDER }} LLM_API_KEY=${{ secrets.LLM_API_KEY }} LLM_MODEL=${{ secrets.LLM_MODEL }} EXAMPLE_SOURCE="mongodb" EXAMPLE_DB_CONNECTION_STRING=${{ secrets.DB_CONNECTION_STRING }} EXAMPLE_DB_NAME=${{ secrets.DB_NAME }} EXAMPLE_DB_COLLECTION=${{ secrets.DB_COLLECTION }}
