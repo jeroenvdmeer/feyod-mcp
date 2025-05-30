@@ -47,6 +47,8 @@ jobs:
         appSourcePath: .
         dockerfilePath: ./Dockerfile
         registryUrl: registry.hub.docker.com
+        registryUsername: ${{ secrets.REGISTRY_USERNAME }}
+        registryPassword: ${{ secrets.REGISTRY_PASSWORD }}
         imageToBuild: jeroenvdmeer/feyod-mcp:latest
         location: ${{ secrets.AZURE_LOCATION }}
         resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
