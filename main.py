@@ -1,10 +1,8 @@
-"""Main FastAPI application for the Feyod MCP server."""
-
 from mcp.server.fastmcp import FastMCP
 import logging
 import config
 import query_processor
-import uvicorn # Import uvicorn
+import uvicorn
 
 # Configure logging using level from config
 logging.basicConfig(level=config.LOG_LEVEL)
