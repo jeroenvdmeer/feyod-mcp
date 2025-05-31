@@ -16,7 +16,7 @@ LLM_API_KEY = os.getenv("LLM_API_KEY")
 LLM_MODEL = os.getenv("LLM_MODEL")
 
 # Example Loading Configuration
-EXAMPLE_SOURCE = os.getenv("EXAMPLE_SOURCE", "local").lower() # "local" or "mongodb"
+EXAMPLE_SOURCE = os.getenv("EXAMPLE_SOURCE").lower()
 EXAMPLE_DB_CONNECTION_STRING = os.getenv("EXAMPLE_DB_CONNECTION_STRING")
-EXAMPLE_DB_NAME = os.getenv("EXAMPLE_DB_NAME", "feyenoord_data") # Default DB name
-EXAMPLE_DB_COLLECTION = os.getenv("EXAMPLE_DB_COLLECTION", "examples") # Default collection name
+EXAMPLE_DB_NAME = os.getenv("EXAMPLE_DB_NAME")
+EXAMPLE_DB_COLLECTION = os.getenv("EXAMPLE_DB_COLLECTION")
