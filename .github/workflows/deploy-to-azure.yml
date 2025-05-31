@@ -56,4 +56,4 @@ jobs:
         ingress: external
         targetPort: 8000
         disableTelemetry: true
-        environmentVariables: LOG_LEVEL="INFO" FEYOD_DATABASE_URL="sqlite+aiosqlite:///feyod/feyod.db" LLM_PROVIDER=${{ secrets.LLM_PROVIDER }} LLM_API_KEY=${{ secrets.LLM_API_KEY }} LLM_MODEL=${{ secrets.LLM_MODEL }} EXAMPLE_SOURCE="mongodb" EXAMPLE_DB_CONNECTION_STRING=${{ secrets.DB_CONNECTION_STRING }} EXAMPLE_DB_NAME=${{ secrets.DB_NAME }} EXAMPLE_DB_COLLECTION=${{ secrets.DB_COLLECTION }}
+        environmentVariables: LOG_LEVEL="INFO" DATABASE_PATH="./feyod/feyod.db" LLM_PROVIDER=${{ secrets.LLM_PROVIDER }} LLM_API_KEY=${{ secrets.LLM_API_KEY }} LLM_MODEL=${{ secrets.LLM_MODEL }} EXAMPLE_SOURCE="mongodb" EXAMPLE_DB_CONNECTION_STRING=${{ secrets.EXAMPLE_DB_CONNECTION_STRING }} EXAMPLE_DB_NAME=${{ secrets.EXAMPLE_DB_NAME }} EXAMPLE_DB_COLLECTION=${{ secrets.EXAMPLE_DB_COLLECTION }}
