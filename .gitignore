@@ -136,6 +136,7 @@ ENV/
 env.bak/
 venv.bak/
 feyod.db
+*.code-workspace
 
 # Spyder project settings
 .spyderproject

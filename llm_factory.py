@@ -7,6 +7,7 @@ from langchain.chat_models.base import BaseChatModel
 from langchain.embeddings.base import Embeddings as BaseEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+
 # Import other provider classes here as needed
 # from langchain_anthropic import ChatAnthropic
 
@@ -20,13 +21,13 @@ PROVIDER_REGISTRY: Dict[str, Dict[str, Type]] = {
         "llm": ChatOpenAI,
         "embeddings": OpenAIEmbeddings,
         "api_key_config": "LLM_API_KEY",
-        "embeddings_args": {}, # Default args for OpenAI Embeddings
+        "embeddings_args": {},  # Default args for OpenAI Embeddings
     },
     "google": {
         "llm": ChatGoogleGenerativeAI,
         "embeddings": GoogleGenerativeAIEmbeddings,
         "api_key_config": "LLM_API_KEY",
-        "embeddings_args": {}, # Default args for Google Embeddings
+        "embeddings_args": {},  # Default args for Google Embeddings
     },
     # Add other providers here, e.g.:
     # "anthropic": {
@@ -37,6 +38,7 @@ PROVIDER_REGISTRY: Dict[str, Dict[str, Type]] = {
     #     "embeddings_args": {},
     # },
 }
+
 
 def _get_api_key(provider: str) -> Optional[str]:
     """Gets the API key for the given provider from config."""
@@ -54,7 +56,9 @@ def _get_api_key(provider: str) -> Optional[str]:
             logger.debug("Using LLM_API_KEY as fallback for Google API key.")
 
     if not api_key:
-         logger.warning(f"API key ('{api_key_config_name}' or fallback) not found in config for provider '{provider}'.")
+        logger.warning(
+            f"API key ('{api_key_config_name}' or fallback) not found in config for provider '{provider}'."
+        )
 
     return api_key
 
@@ -76,12 +80,14 @@ def get_llm() -> Optional[BaseChatModel]:
 
     api_key = _get_api_key(provider)
     if not api_key:
-        logger.error(f"Cannot initialize LLM for provider {provider} due to missing API key.")
+        logger.error(
+            f"Cannot initialize LLM for provider {provider} due to missing API key."
+        )
         return None
 
     # Prepare arguments, prioritizing specific keys
     model_name = config.LLM_MODEL
-    constructor_args = { "model": model_name }
+    constructor_args = {"model": model_name}
 
     # Add API key based on provider's expected parameter name
     # This needs adjustment based on actual class signatures
@@ -103,7 +109,7 @@ def get_llm() -> Optional[BaseChatModel]:
 
 def get_embeddings() -> Optional[BaseEmbeddings]:
     """Creates an Embeddings instance based on the configured provider."""
-    provider = config.LLM_PROVIDER # Assume embeddings provider matches LLM provider
+    provider = config.LLM_PROVIDER  # Assume embeddings provider matches LLM provider
     logger.info(f"Attempting to initialize Embeddings for provider: {provider}")
 
     if provider not in PROVIDER_REGISTRY:
@@ -114,12 +120,16 @@ def get_embeddings() -> Optional[BaseEmbeddings]:
     embeddings_class = provider_info.get("embeddings")
 
     if not embeddings_class:
-        logger.warning(f"Embeddings class not defined or not applicable for provider: {provider}. Cannot initialize embeddings.")
+        logger.warning(
+            f"Embeddings class not defined or not applicable for provider: {provider}. Cannot initialize embeddings."
+        )
         return None
 
     api_key = _get_api_key(provider)
     if not api_key:
-        logger.error(f"Cannot initialize Embeddings for provider {provider} due to missing API key.")
+        logger.error(
+            f"Cannot initialize Embeddings for provider {provider} due to missing API key."
+        )
         return None
 
     embeddings_args = provider_info.get("embeddings_args", {})
@@ -130,9 +140,11 @@ def get_embeddings() -> Optional[BaseEmbeddings]:
     if provider == "openai":
         constructor_args["api_key"] = api_key
     elif provider == "google":
-         # Google Embeddings uses 'model' but we don't configure a separate embedding model currently
+        # Google Embeddings uses 'model' but we don't configure a separate embedding model currently
         constructor_args["google_api_key"] = api_key
-        constructor_args.setdefault("model", "models/embedding-001") # Default Google embedding model
+        constructor_args.setdefault(
+            "model", "models/embedding-001"
+        )  # Default Google embedding model
     # Add elif for other providers' key names
 
     try:
@@ -143,4 +155,3 @@ def get_embeddings() -> Optional[BaseEmbeddings]:
     except Exception as e:
         logger.error(f"Failed to initialize Embeddings for provider {provider}: {e}")
         return None
-

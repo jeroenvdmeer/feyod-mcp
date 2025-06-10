@@ -3,6 +3,7 @@ uvicorn[standard]
 pydantic
 aiosqlite
 python-dotenv
+black
 
 # AI components
 langchain
