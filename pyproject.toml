@@ -1,0 +1,7 @@
+[project]
+name = "feyod-mcp"
+version = "0.1"
+description = "Model Content Protocol (MCP) server for querying Feyenoord football match data using natural language."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
