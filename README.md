@@ -118,6 +118,9 @@ Create a `.env` file in the `mcp` directory with the following variables:
 # Path to the SQLite database file (relative to mcp folder or absolute)
 DATABASE_PATH="../feyod/feyod.db"
 
+# Server host binding (defaults to localhost/127.0.0.1)
+HOST="127.0.0.1"
+
 # Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
 LOG_LEVEL=INFO
 
@@ -135,6 +138,7 @@ EXAMPLE_DB_COLLECTION="examples"
 
 **Notes:**
 - Replace placeholder API key with your actual key.
+- The `HOST` setting defaults to "127.0.0.1" for local development. When running in Docker, it's automatically set to "0.0.0.0" to allow external connections.
 - Ensure the `LLM_PROVIDER` matches one defined in `llm_factory.py`.
 - Install the necessary LangChain integration package for your chosen provider (e.g., `langchain-google-genai`).
 - If using `EXAMPLE_SOURCE="mongodb"`, configure MongoDB settings as above.
