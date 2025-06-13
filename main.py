@@ -60,7 +60,7 @@ async def answer_feyenoord_question(natural_language_query: str) -> dict:
 if __name__ == "__main__":
     uvicorn.run(
         mcp.streamable_http_app,
-        host="0.0.0.0",
+        host=config.HOST,
         port=8000,
         log_level=config.LOG_LEVEL.lower(),
     )

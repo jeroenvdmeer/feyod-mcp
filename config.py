@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_PATH = os.getenv("DATABASE_PATH")
+HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", 8000))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
