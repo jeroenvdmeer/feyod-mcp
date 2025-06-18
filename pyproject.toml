@@ -1,7 +1,30 @@
 [project]
 name = "feyod-mcp"
-version = "0.1"
-description = "Model Content Protocol (MCP) server for querying Feyenoord football match data using natural language."
-readme = "README.md"
+version = "0.1.0"
+description = "MCP server for Feyenoord data"
+authors = [
+    {name = "Jeroen van der Meer"},
+]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "mcp[cli] @ git+https://github.com/modelcontextprotocol/python-sdk.git",
+    "langchain>=0.2.11",
+    "langchain-community>=0.2.0",
+    "faiss-cpu",
+    "langchain-openai>=0.1.18",
+    "langchain-google-genai>=1.0.7",
+    "python-dotenv>=1.0.1",
+    "aiosqlite>=0.20.0",
+    "uvicorn>=0.30.3",
+    "fastapi>=0.111.1",
+    "slowapi>=0.1.9",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.2.2",
+    "pytest-asyncio>=0.23.7",
+]
