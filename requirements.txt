@@ -1,14 +1,19 @@
 mcp[cli]
 uvicorn[standard]
 pydantic
-aiosqlite
 python-dotenv
+aiosqlite
+sqlalchemy
+greenlet
+rapidfuzz
 black
 
-# AI components
+
+langgraph
 langchain
+langchain-core
 langchain-community
 langchain-openai
-langchain_google_genai
-faiss-cpu # Vector store for examples
-pymongo # For MongoDB example loading
+langchain-google-genai
+faiss-cpu
+pymongo

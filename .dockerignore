@@ -1,0 +1,28 @@
+# Exclude sensitive files
+.env
+.env.local
+.env.*.local
+
+# Exclude development files
+.git
+.gitignore
+*.md
+.pytest_cache
+.coverage
+htmlcov/
+
+# Exclude Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Exclude IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Exclude OS files
+.DS_Store
+Thumbs.db
