@@ -13,15 +13,9 @@ log_level = config.LOG_LEVEL.lower()
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)
 
-# --- Workflow Initialization ---
-app_config = {
-    "FEYOD_DATABASE_URL": config.FEYOD_DATABASE_URL,
-    "LLM_API_KEY": config.LLM_API_KEY,
-}
-
 try:
     # Instantiate the manager for raw data output
-    workflow_manager = WorkflowManager(config=app_config, format_output=False)
+    workflow_manager = WorkflowManager(format_output=False)
     workflow = workflow_manager.get_graph()
     logger.info("WorkflowManager initialized for MCP server.")
 except Exception as e:
@@ -47,17 +41,26 @@ async def get_schema() -> str:
     final_state = await workflow.ainvoke(initial_state)
     return final_state.get("schema", "Error: Could not retrieve schema.")
 
-@server.prompt()
+@server.prompt(
+    title="Biggest Feyenoord Win Question",
+    description="Generates a Dutch question about the biggest victory of Feyenoord against a specified opponent."
+)
 def biggest_win(opponent: str) -> str:
     """Returns a question about the biggest Feyenoord win against a given opponent."""
     return f"Wat is de grootste overwinning van Feyenoord op {opponent}?"
 
-@server.prompt()
+@server.prompt(
+    title="Player Goals Question",
+    description="Generates a Dutch question about the number of goals a specified player has scored for Feyenoord."
+)
 def player_goals(player: str) -> str:
     """Returns a question about the number of goals a player has scored for Feyenoord."""
     return f"Hoeveel doelpunten heeft {player} gemaakt voor Feyenoord?"
 
-@server.tool()
+@server.tool(
+    title="Feyenoord Question Answering",
+    description="Answers natural language questions about Feyenoord matches, players, and opponents using the Feyenoord Open Data database. Returns structured JSON results."
+)
 async def answer_feyenoord_question(natural_language_query: str):
     """
     Answers questions about Feyenoord matches, players, and opponents.
