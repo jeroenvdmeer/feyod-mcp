@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jeroenvdmeer-feyod-mcp-badge.png)](https://mseep.ai/app/jeroenvdmeer-feyod-mcp)
+
 # Feyod MCP Server
 
 Model Context Protocol (MCP) server for querying Feyenoord football match data using natural language.
